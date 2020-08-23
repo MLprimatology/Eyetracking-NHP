@@ -1,0 +1,16 @@
+{
+    "name": "Nictation", 
+    "image_dirname":"ControlNictation",
+    "result_dirname":"ControlNictation",
+
+    "__DURATION" : "Temps d'apparition des stimuli en ms",
+    "duration" : 30000 ,
+
+    "__FIXATTION_START" : "Temps de fixation du point central pour démarrer en ms",
+    "fixation_start" : 750, 
+
+    "__FREQUENCY" : "Echantillonage des captures EyeTracker en secondes",
+    "frequency" : 0.010
+	 
+
+}

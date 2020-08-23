@@ -1,0 +1,48 @@
+{
+    "name": "Les 4 points", 
+    "list_stimuli": [
+        {
+		"id" : "1",
+            	"x" : 0.1,
+		"y" : 0.1,
+		"type": "circle",
+		"color" : "yellow",
+		"colorVisu":"red",
+		"size" : 15,
+		"app" : 0
+        },
+        {
+		"id" : "2",
+            	"x" : 0.9,
+		"y" : 0.1,
+		"type": "circle",
+		"color" : "yellow",
+		"colorVisu":"yellow",
+		"size" : 15,
+		"app" : 0
+        },
+        {
+		"id" : "3",
+            	"x" : 0.1,
+		"y" : 0.9,
+		"type": "circle",
+		"color" : "yellow",
+		"colorVisu":"green",
+		"size" : 15,
+		"app" : 0
+        },
+        {
+		"id" : "4",
+            	"x" : 0.9,
+		"y" : 0.9,
+		"type": "circle",
+		"color" : "yellow",
+		"colorVisu":"blue",
+		"size" : 15,
+		"app" : 0
+        }
+    ]}
+
+
+
+

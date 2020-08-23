@@ -1,0 +1,17 @@
+{   "name": "SGVS", 
+    "result_dirname":"SGVS",
+
+
+    "__NB_TRIAL" : "Nombre d'itération par liste de formes (donc x2)",
+    "nb_trial" : 1,
+    "color" : "white",
+
+    "__DURATION" : "Temps d'apparition des stimuli en ms",
+    "duration" : 2000 ,
+
+    "__FIXATTION_START" : "Temps de fixation du point central pour démarrer en ms",
+    "fixation_start" : 1000, 
+
+    "__FREQUENCY" : "Echantillonage des captures EyeTracker en secondes",
+    "frequency" : 0.005 
+}

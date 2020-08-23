@@ -1,0 +1,16 @@
+{
+    "name": "FixationVisage", 
+    "image_dirname":"ExpVisages",
+    "result_dirname":"ExpVisages",
+
+    "__DURATION" : "Temps d'apparition des stimuli en ms",
+    "duration" : 5000 ,
+
+    "__FIXATTION_START" : "Temps de fixation du point central pour démarrer en ms",
+    "fixation_start" : 1000, 
+
+    "__FREQUENCY" : "Echantillonage des captures EyeTracker en secondes",
+    "frequency" : 0.010
+	 
+
+}
