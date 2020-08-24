@@ -1,6 +1,11 @@
 # -*- coding: utf8 -*-
 ''' Gestion de l'interface de contrôle des expériences de l'eye tracker'''
 # Gestion des expériences par création de méthodes virtuelles complétées dans le fichier CDP experience
+__authors__ = ("Mathieu Legrand")
+__contact__ = ("mathieu.legrand78@gmail.com")
+__version__ = "1.0.0"
+__copyright__ = "copyleft"
+__date__ = "23/08/2020"
 
 import tkinter as tk
 import os

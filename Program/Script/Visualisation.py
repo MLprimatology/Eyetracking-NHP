@@ -1,6 +1,10 @@
 # -*- coding: utf8 -*-
 
-
+__authors__ = ("Mathieu Legrand")
+__contact__ = ("mathieu.legrand78@gmail.com")
+__version__ = "1.0.0"
+__copyright__ = "copyleft"
+__date__ = "23/08/2020"
 
 import tkinter, Tkconstants, tkFileDialog, tkMessageBox
 import tkinter as tk
@@ -28,7 +32,7 @@ class CDPBaseVisualisation:
 		pass
 
 	def affiche_image(self, fichier, pos):
-		pass 
+		pass
 
 	def validation_calibration(self,PosDroit,PosGauche):
 		pass
@@ -46,7 +50,7 @@ class CDPBaseVisualisation:
 		pass
 	def Show_point(self,x,y,r,col):
 		pass
-	def write_time(self,Tp,Tr,Tv,Txp,Nbrec,TinterTrial,tvtot,trtot,dist,tmaxcons):		
+	def write_time(self,Tp,Tr,Tv,Txp,Nbrec,TinterTrial,tvtot,trtot,dist,tmaxcons):
 		pass
 	def effacer_text(self):
 		pass
@@ -55,11 +59,11 @@ class CDPBaseVisualisation:
 
 	def draw_AOI_fix(self):
 		pass
-	
+
 class CDPVisualisation(CDPBaseVisualisation):
 	def __init__(self,refInterface,disp):
 		self.listImg = []
-		self.refInterface = refInterface	
+		self.refInterface = refInterface
 		self.disp = disp
 		self.fig = 0
 		self.factor = 2 # facteur de division de la taille de la fentre par rapport a l ecran experience
@@ -114,8 +118,8 @@ class CDPVisualisation(CDPBaseVisualisation):
 	def effacer_gaze(self):
 
 		self.canvas.get_tk_widget().delete(self.Pos)
-	
-	
+
+
 	def write_time(self,Tp,Tr,Tv,Txp,Nbrec,TinterTrial,tvtot,trtot,dist,tmaxcons):
 
 		self.tp =self.canvas.get_tk_widget().create_text(0,0,text="Tp = " + str(Tp) + ' ms',fill='white',anchor=tk.NW,font=("Arial", 15))
@@ -202,9 +206,9 @@ class CDPVisualisation(CDPBaseVisualisation):
 		self.fig = Figure(figsize=[9.6,5.4],dpi=100,facecolor='black')
 		self.canvas = FigureCanvasTkAgg(self.fig, master=self.tk)  # A tk.DrawingArea.
 		self.canvas.get_tk_widget().pack(fill = 'both')
-		
 
-	
+
+
 
 
 

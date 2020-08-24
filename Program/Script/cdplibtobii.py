@@ -1,5 +1,16 @@
 # -*- coding: utf8 -*-
 
+
+# Modification du code Pygaze + ajout de fonction
+
+__authors__ = ("Mathieu Legrand")
+__contact__ = ("mathieu.legrand78@gmail.com")
+__version__ = "1.0.0"
+__copyright__ = "copyleft"
+__date__ = "23/08/2020"
+
+
+
 from __future__ import division #CDP
 import time
 import os

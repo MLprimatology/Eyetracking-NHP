@@ -3,14 +3,23 @@
 # La classe CDPexperience hérite de la classe CDPApplication du fichier python CDPInterface
 #  Elle implémente les méthodes virtuelles héritées de la classe mère
 
+"""Docstring d'une ligne décrivant brièvement ce que fait le programme. 
+Usage: ====== 
+CDPExperience.py
+"""
+__authors__ = ("Mathieu Legrand")
+__contact__ = ("mathieu.legrand78@gmail.com")
+__version__ = "1.0.0"
+__copyright__ = "copyleft"
+__date__ = "23/08/2020"
+
 import random
 import os
 import time
 import datetime
 import constants
 import json
-import detectors
-import gazeplotter
+
 import pygaze
 
 from openpyxl import Workbook,load_workbook
@@ -49,8 +58,7 @@ from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationB
 
 
 
-import detectors
-import gazeplotter
+
  
 
 
