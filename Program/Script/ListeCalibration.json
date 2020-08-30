@@ -1,0 +1,5 @@
+{
+    "__ListeCal" : "Liste des points de calibration en coorodnnées comprises entre 0 et 1, (0,0) représente le coin en haut à gauche de l'écran. Le premier point de la liste correspond au numéro 1 du pavé numérique ",
+    "ListeCal" :[[0.1, 0.9], [0.5,0.9],[0.9, 0.9],[0.3,0.65],[0.7,0.65],[0.1,0.4],[0.5,0.4],[0.9,0.4]]
+
+}

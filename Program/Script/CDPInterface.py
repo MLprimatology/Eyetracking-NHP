@@ -1,11 +1,14 @@
 # -*- coding: utf8 -*-
 ''' Gestion de l'interface de contrôle des expériences de l'eye tracker'''
 # Gestion des expériences par création de méthodes virtuelles complétées dans le fichier CDP experience
-__authors__ = ("Mathieu Legrand")
-__contact__ = ("mathieu.legrand78@gmail.com")
-__version__ = "1.0.0"
-__copyright__ = "copyleft"
-__date__ = "23/08/2020"
+
+
+__authors__ = ("Mathieu Legrand") 
+__contact__ = ("mathieu.legrand78@gmail .com")
+__version__ = "1.0.1"
+__copyright__ = "copyleft" 
+__date__ = "28/08/2020"
+
 
 import tkinter as tk
 import os
@@ -19,7 +22,7 @@ from matplotlib.figure import Figure
 from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
 import threading
-
+import json
 
 __metaclass__ = type
 
@@ -98,20 +101,25 @@ class CDPApplication():
         menubar.add_cascade(label="Fichier", menu=menu1)
 
         menu2 = tk.Menu(menubar, tearoff=0)
-        menu2.add_command(label="Charger",  command=self.loadCalibration)
-        menu2.add_command(label="Apprentissage Position",  command=self.ApprentissagePos)
-        menu2.add_command(label="Démarrer",  command=self.calibrate)
-        menu2.add_command(label="Validation Calibration",  command=self.ValidationCalibration)
+        menu2.add_command(label="Charger une caibration",  command=self.loadCalibration)
+        menu2.add_command(label="Lancer une calibration",  command=self.calibrate)
+        menu2.add_command(label="Valider la calibration",  command=self.ValidationCalibration)
+        menu2.add_separator()
 
+        menu2.add_command(label="Visualiser la calibration",  command=self.CDPVisualisationCalibration)
         menubar.add_cascade(label="Calibration", menu=menu2)
 
         menu3 = tk.Menu(menubar, tearoff=0)
+        menu3.add_command(label="Où est Charlie ?",  command=self.Nictation)
+        menu3.add_separator()
+
+        menu3.add_command(label="Apprentissage Position",  command=self.ApprentissagePos)
+
         menu3.add_command(label="Fixation Point",  command=self.InterfacefixationPoint)
-        menu3.add_command(label="SGVS",  command=self.SGVS)
+        #menu3.add_command(label="SGVS",  command=self.SGVS)
         #menu3.add_command(label="Fixation Visage",  command=self.FixVisage)
-        menu3.add_command(label="Nictation",  command=self.Nictation)
         menu3.add_command(label="Exploration Visages",  command=self.InterfaceExplorationVisage)
-        menu3.add_command(label="Afficher GIF",  command=self.CDPDispGIF)
+        #menu3.add_command(label="Afficher GIF",  command=self.CDPDispGIF)
 
 
         menubar.add_cascade(label="Experiences", menu=menu3)
@@ -122,6 +130,8 @@ class CDPApplication():
 
         menu5 = tk.Menu(menubar, tearoff=0)
         menu5.add_command(label="Connecter",  command=self.CDPInitialisation)
+        menu5.add_separator()
+
         menu5.add_command(label="Déconnecter",  command=self.CDPDisconnect)
         menubar.add_cascade(label="EyeTracker", menu=menu5)
 
@@ -137,7 +147,15 @@ class CDPApplication():
         self.Config= CDPConfiguration(configFilename)
         
         self.tracker = 0
+        
+        try:
+            with open(self.Config.getScriptDirname('ListeIndividus.json') , "r") as fichier:
 
+                data = json.load(fichier)            
+                self.ListeInd = data["ListeInd"] 
+                
+        except IOError :
+            print ("fichier %s introuvable", filename )   
         self.root.mainloop()
         
     ''' Fonctions de calibrations '''
@@ -148,6 +166,7 @@ class CDPApplication():
         self.CDPLoadCalibration()
 
     def calibrate(self):
+
         self.padFrame = tk.Frame(self.root)
         self.boutons = 10*[0]
         self.addButtonCal ( 7,  3,  1)
@@ -165,11 +184,16 @@ class CDPApplication():
 	        
 
         tk.Button(self.padFrame, text="Sauvegarde", command=self.applyCalibration).grid(column=1, row=6, columnspan=6, pady = 3, padx = 3, sticky='nesw')
-
+        tk.Button(self.padFrame, text="Quitter la Calibration", command=self.LeaveCalibration).grid(column=1, row=7, columnspan=6, pady = 3, padx = 3, sticky='nesw')
         self.padFrame.grid_forget()
         self.CDPinitCalibration()
         self.showPad()
 
+    def LeaveCalibration(self):
+        self.padFrame.destroy()
+        self.unbind(9)
+
+        self.CDPLeaveCalibration()
 
     def applyCalibration(self):
 
@@ -201,7 +225,6 @@ class CDPApplication():
         
         col = ['black','grey','yellow','green','pink','red','blue','purple','orange']
         cpt = 0
-
 
         OldXref = self.ListeCal[0][0]
         OldYref = self.ListeCal[0][1]
@@ -241,7 +264,8 @@ class CDPApplication():
         self.addButton ( 6,  1,  1)
         self.addButton ( 3,  5,  3)   
 
-        self.validerbutton = tk.Button(self.padFrame, text="Valider", command=lambda:[self.AfficherGain(),self.destroyPad()]).grid(column=1, row=6, columnspan=6, pady = 3, padx = 3, sticky='nesw')
+        tk.Button(self.padFrame, text="Valider", command=lambda:[self.AfficherGain(),self.destroyPad()]).grid(column=1, row=6, columnspan=6, pady = 3, padx = 3, sticky='nesw')
+        tk.Button(self.padFrame, text="Quitter", command=self.destroyPad).grid(column=1, row=7, columnspan=6, pady = 3, padx = 3, sticky='nesw')
         self.showPad()
 
 
@@ -334,33 +358,99 @@ class CDPApplication():
 
 
     def InterfacefixationPoint(self):
-                
-        self.temps = tk.Label(self.root, text="Entrer le temps de fixation en millisecondes")
-        self.temps.grid(row=0)
+
+        self.cptVisu = 0
+        self.ind = tk.Label(self.root, text="Sélectionner un individu :")
+        self.ind.grid(row=0,columnspan=3)
+        self.scrollbar = tk.Scrollbar(self.root)
+        self.listbox = tk.Listbox(self.root,height=3)
+        self.listbox.grid(row =1,column=2)
+        for i in self.ListeInd:
+            self.listbox.insert(tk.END,i)
+
+        self.listbox.config(yscrollcommand=self.scrollbar.set)
+        self.scrollbar.config(command=self.listbox.yview) 
+
+
+
+
+        self.afficvistxt = tk.Label(self.root, text="Cocher la case pour la visualisation :")
+        self.afficvistxt.grid(row=3,columnspan=3)
+        self.affvis  = tk.IntVar ()
+        self.case = tkinter.Checkbutton (variable = self.affvis)
+        self.case.grid(row=3,column=3)
+
+
+        self.xtxt = tk.Label(self.root, text="x fixation =")
+        self.xtxt.grid(row=6,column=1)
+        self.x = tk.Entry(self.root,justify='center')
+        self.x.insert(0,0.5)
+        self.x.grid(row=6,column=2)
+
+        self.ytxt = tk.Label(self.root, text="y fixation =")
+        self.ytxt.grid(row=7,column=1)
+        self.y = tk.Entry(self.root,justify='center')
+        self.y.insert(0,0.65)
+        self.y.grid(row=7,column=2)
+
+        self.toltxt = tk.Label(self.root, text="Tolérance (px) =")
+        self.toltxt.grid(row=8,column=1)
+        self.tol = tk.Entry(self.root,justify='center')
+        self.tol.insert(0,80)
+        self.tol.grid(row=8,column=2)
+
+        self.temps = tk.Label(self.root, text="Entrer le temps de fixation en millisecondes :")
+        self.temps.grid(row=9,columnspan=3)
         self.tfix = tk.Entry(self.root,justify='center')
         self.tfix.insert(0,250)
-        self.tfix.grid(row=1)
-
+        self.tfix.grid(row=10,column=2)
         self.buttonVal = tk.Button(self.root, text="Valider", command = self.fixationPoint)
-        self.buttonVal.grid(row=3)
+        self.buttonVal.grid(row=11,column=2)
 
         self.annuler = tk.Button(self.root, text="Stop", command=self.annuleFixationPoint)
-        self.annuler.grid(row=5)
-        
+        self.annuler.grid(row=12,column=2)
+
         
 
 
     def fixationPoint(self):
+        if self.affvis.get() == 1 and self.cptVisu ==0:     
+            self.AffichageVis()
+            self.cptVisu = 1
+        if self.affvis.get() == 0 and self.cptVisu ==1:
+            self.CDPDeleteVisualisation()
+            self.cptVisu = 0
+
+        tol = int(self.tol.get())
+        xfix = float(self.x.get())
+        yfix = float(self.y.get())
+
         self.tfixation = int(self.tfix.get())
-        self.CDPFixationPoint(self.tfixation)
+        Name = self.listbox.get(tk.ACTIVE)
+        self.CDPFixationPoint(self.tfixation,Name,tol,xfix,yfix)
 
     def annuleFixationPoint(self):
+
+        self.case.destroy()
+        self.afficvistxt.destroy()
         self.temps.destroy()
         self.tfix.destroy()
         self.buttonVal.destroy()
         self.annuler.destroy()
+        self.scrollbar.destroy()
+        self.listbox.destroy()
+        self.afficvistxt.destroy()
+        self.case.destroy()
+        self.xtxt.destroy()
+        self.x.destroy()
+        self.ytxt.destroy()
+        self.y.destroy()
+        self.toltxt.destroy()
+        self.tol.destroy()
+        self.ind.destroy()
 
     def ApprentissagePos(self):
+
         self.nom = tk.Label(self.root, text="Nom de l'individu")
         self.nom.grid(row=0)
         self.rec = tk.Label(self.root, text="Récompense")
@@ -374,7 +464,7 @@ class CDPApplication():
         self.scrollbar = tk.Scrollbar(self.root)
         self.listbox = tk.Listbox(self.root,height=3)
         self.listbox.grid(row =0,column=1)
-        for i in ['Abr','Ala','Alv','Anu','Bar','Ber','Ces','Dor','Jea','Lad','Las','Nem','Ner','Ola','Olg','Oll','Pac','Pat','Uly','Yin','Yoh','TEST']:
+        for i in self.ListeInd:
             self.listbox.insert(tk.END,i)
 
         self.listbox.config(yscrollcommand=self.scrollbar.set)
@@ -400,6 +490,7 @@ class CDPApplication():
         self.abandonner.grid(row=5, column=2)
 
     def dstroyentry(self):
+        
         self.cond.destroy()
         self.condition.destroy()
         self.recompense.destroy()
@@ -452,26 +543,52 @@ class CDPApplication():
 
     def InterfaceExplorationVisage(self):
         self.nom = tk.Label(self.root, text="Nom de l'individu")
-        self.nom.grid(row=0)
+        self.nom.grid(row=0,column=1)
 
 
 
         self.scrollbar = tk.Scrollbar(self.root)
         self.listbox = tk.Listbox(self.root,height=3)
-        self.listbox.grid(row =0,column=1)
-        for i in ['abr','ala','alv','anu','bar','ber','ces','dor','jea','lad','las','nem','ner','ola','olg','oli','pac','pat','yin','yoh']:
+        self.listbox.grid(row =0,column=2)
+        for i in self.ListeInd:
             self.listbox.insert(tk.END,i)
 
         self.listbox.config(yscrollcommand=self.scrollbar.set)
         self.scrollbar.config(command=self.listbox.yview)
-        
-        self.buttonVal = tk.Button(self.root, text="Start", command = lambda: self.CDPExplorationVisage(self.listbox.get(tk.ACTIVE)))
-        self.buttonVal.grid(row=2, column=1)
+
+
+        self.coordonneext = tk.Label(self.root, text="x Fixation")
+        self.coordonneext.grid(row=1,column=1)
+        self.cordonneeX = tk.Entry(self.root,justify='center')
+        self.cordonneeX.insert(0,0.2)
+        self.cordonneeX.grid(row=1,column=2)
+
+        self.coordonneeyt = tk.Label(self.root, text="y Fixation")
+        self.coordonneeyt.grid(row=2,column=1)
+        self.cordonneeY = tk.Entry(self.root,justify='center')
+        self.cordonneeY.insert(0,0.65)
+        self.cordonneeY.grid(row=2,column=2)
+
+
+
+
+        self.buttonVal = tk.Button(self.root, text="Start", command = lambda: self.ExploVisage())
+        self.buttonVal.grid(row=3, column=2)
 
         self.abandonner = tk.Button(self.root, text="Fin", command=self.destroyIntefaceExplVisage)    
-        self.abandonner.grid(row=4, column=1)
+        self.abandonner.grid(row=4, column=2)
+
+
+    def ExploVisage(self):
+        xfix = self.cordonneeX.get()
+        yfix = self.cordonneeY.get()
+        self.CDPExplorationVisage(self.listbox.get(tk.ACTIVE),xfix,yfix)
 
     def destroyIntefaceExplVisage(self):
+        self.coordonneext.destroy()
+        self.cordonneeX.destroy()
+        self.coordonneeyt.destroy()
+        self.cordonneeY.destroy()
         self.nom.destroy()
         self.abandonner.destroy()
         self.buttonVal.destroy()
@@ -531,6 +648,10 @@ class CDPApplication():
 
     def CDPLoadCalibration(self):
 	    pass
+    def CDPVisualisationCalibration(self):
+        pass
+    def CDPLeaveCalibration(self):
+        pass
 
     def CPDValidationPostion(self):
         pass 
@@ -543,7 +664,7 @@ class CDPApplication():
         pass
     def CDPSaveGain(self,Liste):
         pass
-    def CDPFixationPoint(self,t):
+    def CDPFixationPoint(self,t,name,tol,x,y):
         pass
 
     def CDPApprentissagePos(self,Name,Cond,Rec):
@@ -552,7 +673,7 @@ class CDPApplication():
     def fonction_essai(self):
         pass
 
-    def CDPExplorationVisage(self,name):
+    def CDPExplorationVisage(self,name,xfix,yfix):
         pass
 
     def CDPSGVS(self):

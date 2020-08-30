@@ -3,31 +3,29 @@
 # La classe CDPexperience hérite de la classe CDPApplication du fichier python CDPInterface
 #  Elle implémente les méthodes virtuelles héritées de la classe mère
 
-"""Docstring d'une ligne décrivant brièvement ce que fait le programme. 
-Usage: ====== 
-CDPExperience.py
-"""
-__authors__ = ("Mathieu Legrand")
-__contact__ = ("mathieu.legrand78@gmail.com")
-__version__ = "1.0.0"
-__copyright__ = "copyleft"
-__date__ = "23/08/2020"
+
+
+
+__authors__ = ("Mathieu Legrand") 
+__contact__ = ("mathieu.legrand78@gmail .com")
+__version__ = "1.0.1"
+__copyright__ = "copyleft" 
+__date__ = "28/08/2020"
+
 
 import random
 import os
 import time
 import datetime
-import constants
 import json
 
 import pygaze
 
 from openpyxl import Workbook,load_workbook
-import cv2
+
 
 import tobii_research as tr
 
-import xlwt
 from os.path import basename
 from functools import partial
 from pygaze import libscreen
@@ -43,23 +41,13 @@ import tkinter, Tkconstants, tkFileDialog, tkMessageBox
 from pygaze.keyboard import Keyboard
 from tkinter import *
 import tkinter.messagebox
-import threading
 
-from scipy import stats, integrate
-from PIL import Image
-from pandas import DataFrame
+
 
 import xlrd 
 
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
 
 
-
-
- 
 
 
  
@@ -84,10 +72,11 @@ class experience(CDPApplication):
 		self.tracker = CDPProTracker(self.disp)# création de l'objet eyeTracker
 		self.kb = Keyboard(keylist=['space', 'escape', 'q'], timeout=1)
 		self.Visu = CDPBaseVisualisation(self)
-		self.RecSound = libsound.Sound(soundfile='/home/eyetracker/Downloads/2.wav')
-		self.ErrSound = libsound.Sound(soundfile='/home/eyetracker/Downloads/punition.wav')
+		self.RecSound = libsound.Sound(soundfile=self.Config.getSoundDirname ('2.wav'))
+		self.ErrSound = libsound.Sound(soundfile=self.Config.getSoundDirname ('punition.wav'))
 		self.nameInd = 0
 		self.mydisp = [self.disp]
+
 
 		print("Eyetracker connecté avec succès")
 
@@ -97,6 +86,7 @@ class experience(CDPApplication):
 			return()
 		self.tracker.close()
 		self.disp.close()
+
 		print("Eyetracker déconnecté avec succès")
 
 
@@ -122,7 +112,7 @@ class experience(CDPApplication):
 
 	def CDPValidatePoint(self,num):
 
-		time.sleep(0.7)
+		time.sleep(0.8)
 		self.tracker.validateCalibrationPoint(num-1)
 		self.RecSound.play()
         
@@ -147,6 +137,8 @@ class experience(CDPApplication):
 			gazePosSheet.append(Lis)
 
 		table.save(self.baseFilename +'_' +  date  +'.xls' )
+		self.baseFilename = self.baseFilename +'_' + date
+
 		self.root.title("Fenêtre de suivi de " + self.nameInd )
 
 	def CDPSendValidationPoint(self,indice):
@@ -187,9 +179,69 @@ class experience(CDPApplication):
 					print("Applying calibration on eye tracker with serial number {0}.".format(self.tracker.eyetracker.serial_number))
 					self.tracker.eyetracker.apply_calibration_data(calibration_data)
 			self.baseFilename = os.path.splitext(self.filename)[0]
-
 			self.nameInd = basename(self.baseFilename)
 		self.root.title("Fenêtre de suivi de " + self.nameInd )
+
+	def CDPLeaveCalibration(self):
+		self.tracker.annuler_calibration()
+		self.disp = libscreen.Display(screennr=int(self.Config.getConfiguration('DISPLAY','screen_number')))
+
+	def CDPVisualisationCalibration(self):
+		if self.baseFilename == 0:
+			tkinter.messagebox.showerror(title= "Erreur", message='Veuillez selectionner un fichier de calibration')
+		else :
+			myBook = xlrd.open_workbook(self.baseFilename+ '.xls')
+			ControlSHeet = myBook.sheet_by_index(0) 
+			nbRow = ControlSHeet.nrows
+			Liste = []
+			for i in range (1,nbRow):
+				Liste += [ControlSHeet.row_values(i)]
+			for i in range (len(Liste)):
+				for j in range (len(Liste[i])):
+					if Liste[i][j] == u'' :
+						Liste[i][j] = -1
+
+
+			self.tkplot = tk.Toplevel(self.root)
+			self.tkplot.title ("Représentation Calibration") # nom de la fenetre tkinter fille
+			self.fig = Figure()
+
+			self.canvas = FigureCanvasTkAgg(self.fig, master=self.tkplot)  
+			self.canvas.get_tk_widget().pack(fill='both', expand=True)
+			ax = self.fig.add_subplot(111)
+			ax.set_ylim(0,1080)
+			ax.invert_yaxis()
+			ax.set_xlim(0,1920)
+			
+			col = ['black','grey','yellow','green','pink','red','blue','purple','orange']
+			cpt = 0
+
+
+			OldXref = Liste[0][0]
+			OldYref = Liste[0][1]
+			ListeXref = [OldXref]
+			ListeYref = [OldYref]
+			ListeTest = [(OldXref,OldYref)]
+			for Pos in Liste:
+				Xref = Pos[0]
+				Yref = Pos[1]
+				if (Xref,Yref) not in ListeTest:
+					ListeXref += [Xref]
+					ListeYref += [Yref]
+					ListeTest += [(Xref,Yref)]
+					cpt +=1
+
+				if Pos[2] != 0 and Pos[3] != 0:
+					ax.scatter(Pos[2],Pos[3], c = col[cpt],marker='x',s=8)
+				if Pos[4] != 0 and Pos[5] != 0:
+					ax.scatter(Pos[4],Pos[5],c=col[cpt],marker='s',s=8)
+			for i in range (len (ListeXref)):
+				ax.scatter(ListeXref[i],ListeYref[i],c=col[i],s=80)
+
+			self.canvas.get_tk_widget().pack(fill='both', expand=True)
+			self.canvas.show()	
+
+
 
 	def CDPApprentissagePos(self,Name,Cond,Rec):
 
@@ -339,7 +391,7 @@ class experience(CDPApplication):
 		'''	
 
 		tfix = 0
-
+		
 
 		while tfix < t: # Tant que l'on regarde pas le cercle pendant 1 seconde 
 
@@ -363,6 +415,13 @@ class experience(CDPApplication):
 				self.disp.show()
 				tfix += (libtime.get_time() - newTime)
 				
+
+			if self.kb.get_key(keylist= ['space'], flush=False)[0]:
+				screen.clear()
+				self.disp.fill(screen=screen)
+				self.disp.show()
+
+				return()
 		screen.clear()
 
 
@@ -468,7 +527,7 @@ class experience(CDPApplication):
 					NewTimeStamp, Newgazepos = self.tracker.binocular_sample()
 					if NewTimeStamp != oldTimeStamp :
 						t = int(NewTimeStamp - txp) /1000
-						etat = etat_yeux(Newgazepos[0],Newgazepos[1])
+						etat = self.etat_yeux(Newgazepos[0],Newgazepos[1])
 						gazePosSheet.append([t, Newgazepos[0][0],Newgazepos[0][1],Newgazepos[1][0],Newgazepos[1][1],Newgazepos[2][0],Newgazepos[2][1],etat])
 						oldTimeStamp = NewTimeStamp
 
@@ -528,7 +587,7 @@ class experience(CDPApplication):
 				t = libtime.get_time()
 				NewTimeStamp, Newgazepos = self.tracker.binocular_sample()
 				if NewTimeStamp != oldTimeStamp :
-					etat = etat_yeux(Newgazepos[0],Newgazepos[1])
+					etat = self.etat_yeux(Newgazepos[0],Newgazepos[1])
 					gazePosSheet.append([t, Newgazepos[0][0],Newgazepos[0][1],Newgazepos[1][0],Newgazepos[1][1],Newgazepos[2][0],Newgazepos[2][1],etat])
 					oldTimeStamp = NewTimeStamp
 
@@ -629,7 +688,7 @@ class experience(CDPApplication):
 					self.Visu.Show_gaze(Newgazepos[2][0],Newgazepos[2][1])
 					if NewTimeStamp != oldTimeStamp :
 						t = int(NewTimeStamp - txp) /1000
-						etat = etat_yeux(Newgazepos[0],Newgazepos[1])
+						etat = self.etat_yeux(Newgazepos[0],Newgazepos[1])
 						gazePosSheet.append([t, Newgazepos[0][0],Newgazepos[0][1],Newgazepos[1][0],Newgazepos[1][1],Newgazepos[2][0],Newgazepos[2][1],etat])
 						oldTimeStamp = NewTimeStamp
 				ScreenVisage.clear()
@@ -647,97 +706,111 @@ class experience(CDPApplication):
 
 		'''
 		Description :
-			Après avoir fixé un point central pendant 750 ms, une image de mer (paysage calm et apsiant) apparait pednant 30 sec puis un autre point a fixer et une 
+			Après avoir fixé un point central pendant 500 ms, une image de mer (paysage calm et apsiant) apparait pednant 30 sec puis un autre point a fixer et une 
 			image de "Ou est Charlie" apparait et l'individu doit trouver Charlier (COncentration). Cette foction renvoie un tableau excel avec les données de l'eye tracker
 			permettant d'effectuer un contrôle psitiif sur les nictations de l'individu
 		'''
-
 		
 		date = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
 		self.tracker.start_recording()
-		name = 'Mer' 
+		name = 'Charlie' 
 		ScreenNict = libscreen.Screen()
-		Listeimg = ['/home/eyetracker/Bureau/Program/Images/ControlNictation/Mer.jpg','/home/eyetracker/Bureau/Program/Images/ControlNictation/Charlie.jpg']
-		for Img in Listeimg :
-			table = Workbook()
-			gazePosSheet = table.active
-			gazePosSheet.title = 'gazePos'
-						
-			informationsheet = table.create_sheet("Information")
-			gazePosSheet.append(["Time", "XOeilDroit", "YOeilDroit","XOeilGauche","YOeilGauche","xRetenu","Yretenu","Etat"])
-			informationsheet.append(["NomImg","xImage","yImage"])
+		Img = self.Config.getImageDirname ('ControlNictation') + '/Charlie.jpg'
 
-			self.ValidationFixation(ScreenNict,750)
+		table = Workbook()
+		gazePosSheet = table.active
+		gazePosSheet.title = 'gazePos'
+					
+		informationsheet = table.create_sheet("Information")
+		gazePosSheet.append(["Time", "XOeilDroit", "YOeilDroit","XOeilGauche","YOeilGauche","xRetenu","Yretenu","Etat"])
+		informationsheet.append(["NomImg","xImage","yImage"])
+		print("Début de l'expérience")
+		self.ValidationFixation(ScreenNict,500)
 
-			ScreenNict.draw_image(image = Img)
-			self.disp.fill(screen=ScreenNict)
-			self.disp.show()
+		ScreenNict.draw_image(image = Img)
+		self.disp.fill(screen=ScreenNict)
+		self.disp.show()
 
 
-			tdeb = libtime.get_time()
-			oldTimeStamp = 0
-			txp,gase = self.tracker.binocular_sample()
-			while libtime.get_time()-tdeb < 30000 :
-				time.sleep(0.01)
-				NewTimeStamp, Newgazepos = self.tracker.binocular_sample()
-				if NewTimeStamp != oldTimeStamp :
-					t = int(NewTimeStamp - txp) /1000
-					etat = etat_yeux(Newgazepos[0],Newgazepos[1])
-					gazePosSheet.append([t, Newgazepos[0][0],Newgazepos[0][1],Newgazepos[1][0],Newgazepos[1][1],Newgazepos[2][0],Newgazepos[2][1],etat])
-					oldTimeStamp = NewTimeStamp
+		tdeb = libtime.get_time()
+		oldTimeStamp = 0
+		txp,gase = self.tracker.binocular_sample()
+		while libtime.get_time()-tdeb < 30000 :
+			time.sleep(0.01)
+			NewTimeStamp, Newgazepos = self.tracker.binocular_sample()
+			if NewTimeStamp != oldTimeStamp :
+				t = int(NewTimeStamp - txp) /1000
+				etat = self.etat_yeux(Newgazepos[0],Newgazepos[1])
+				gazePosSheet.append([t, Newgazepos[0][0],Newgazepos[0][1],Newgazepos[1][0],Newgazepos[1][1],Newgazepos[2][0],Newgazepos[2][1],etat])
+				oldTimeStamp = NewTimeStamp
+			if self.kb.get_key(keylist= ['space'], flush=False)[0]:
+				ScreenNict.clear()
+				self.disp.fill(screen=ScreenNict)
+				self.disp.show()
+				self.tracker.stop_recording()
+				print("Fin de l'expérience")
 
-			ScreenNict.clear()
-			self.disp.fill(screen=ScreenNict)
-			self.disp.show()
+				return()
 
-			informationsheet.append([name +'.jpg',960,540])
+		ScreenNict.clear()
+		self.disp.fill(screen=ScreenNict)
+		self.disp.show()
 
-			table.save('/home/eyetracker/Bureau/Data/Experiences/ControlNictation/' +self.nameInd +'_' + name +'_'+ date + '.xls')
-			name = 'Charlie'
+		informationsheet.append([name +'.jpg',960,540])
+
+		table.save('/home/eyetracker/Bureau/Data/Experiences/ControlNictation/' +self.nameInd +'_' + name +'_'+ date + '.xls')
+		print("Fin de l'expérience")
 
 		self.tracker.stop_recording()
+		
+	def CDPFixationPoint(self,tfixation,Name,tol,x,y):
 
-	def CDPFixationPoint(self,tfixation):
-
-		#self.Visu = CDPVisualisation(self,self.disp)
+		self.Visu.blackscreen()
+		datej = datetime.datetime.now().strftime("%d-%m-%Y")
+		
 		date = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
+
+		table = load_workbook(self.Config.getDataDirname('FixationPoint') + '/' + Name + '.xlsx')
+		mysheet = table.active
 		ListeResultat = []
 		txp = 0
 		tdeb = 0
 		tfix = 0
 		cptperte = 0
 		self.tracker.start_recording()
-		table = Workbook()
-		gazePosSheet = table.active
-		gazePosSheet.title = 'gazePos'
-		Result = 'Wrong'			
-		gazePosSheet.append(["Time", "XOeilDroit", "YOeilDroit","XOeilGauche","YOeilGauche","xRetenu","Yretenu","Etat"])
+		#table = Workbook()
+		#gazePosSheet = table.active
+		#gazePosSheet.title = 'gazePos'
+		Result = 1			
+		#gazePosSheet.append(["Time", "XOeilDroit", "YOeilDroit","XOeilGauche","YOeilGauche","xRetenu","Yretenu","Etat"])
+		pospxl = self.norm_2_px((x,y))
 
-		#self.Visu.draw_AOI_fix()
-		#self.Visu.VisuShow()
+		self.Visu.draw_AOI_fix(pospxl[0],pospxl[1],tol)
+		self.Visu.VisuShow()
 		screen = libscreen.Screen()
-
+		cptdefauteyetracker = 0
 		#le cercle reste blanc
-		screen.draw_circle(colour='white', pos= self.norm_2_px((0.5,0.65)), r=30, pw=2, fill=True) 
+		screen.draw_circle(colour='white', pos= pospxl, r=30, pw=2, fill=True) 
 		self.disp.fill(screen=screen)
 		self.disp.show()
 		oldTimeStamp = 0
 		tdebxp = libtime.get_time()
 		txp ,Newgazepos = self.tracker.binocular_sample()
-		# tolérance de 80 pixels
-		while tdeb < 3000 and (Newgazepos[2][0] < 860 or Newgazepos[2][0] > 1060) and (Newgazepos[2][1] < 611 or Newgazepos[2][1] > 793):
+		while tdeb < 3000 and not ((Newgazepos[2][0] > (pospxl[0] - tol) and Newgazepos[2][0] < (pospxl[0] + tol)) and (Newgazepos[2][1] > (pospxl[1] - tol) and Newgazepos[2][1] < (pospxl[1] + tol))):
+			print(tdeb)
 			time.sleep(0.005)
 			NewTimeStamp, Newgazepos = self.tracker.binocular_sample()
-			#self.Visu.Show_gaze(Newgazepos[2][0],Newgazepos[2][1])
+			self.Visu.Show_gaze(Newgazepos[2][0],Newgazepos[2][1])
 			newTime = libtime.get_time()
 			if NewTimeStamp != oldTimeStamp :
 				t = int(NewTimeStamp - txp) /1000
-				etat = etat_yeux(Newgazepos[0],Newgazepos[1])
-				gazePosSheet.append([t, Newgazepos[0][0],Newgazepos[0][1],Newgazepos[1][0],Newgazepos[1][1],Newgazepos[2][0],Newgazepos[2][1],etat])
+				etat = self.etat_yeux(Newgazepos[0],Newgazepos[1])
+				#gazePosSheet.append([t, Newgazepos[0][0],Newgazepos[0][1],Newgazepos[1][0],Newgazepos[1][1],Newgazepos[2][0],Newgazepos[2][1],etat])
 				oldTimeStamp = NewTimeStamp
 			tdeb = (libtime.get_time() - tdebxp)
 
 		screen= libscreen.Screen()
+
 		if tdeb < 3000:
 			
 			while tfix < tfixation and cptperte<300:  
@@ -745,41 +818,65 @@ class experience(CDPApplication):
 				newTime = libtime.get_time()
 				time.sleep(0.005)
 				NewTimeStamp, Newgazepos = self.tracker.binocular_sample()
-				#self.Visu.Show_gaze(Newgazepos[2][0],Newgazepos[2][1])
-				#self.Visu.VisuShow()
-				# si l'individu ne regarde pas le point central
+				self.Visu.Show_gaze(Newgazepos[2][0],Newgazepos[2][1])
+				self.Visu.VisuShow()
+				#si l'individu ne regarde pas le point central
 
-				if (Newgazepos[2][0] < 860 or Newgazepos[2][0] > 1060) and (Newgazepos[2][1] < 611 or Newgazepos[2][1] > 193) : 
-					cptperte += (libtime.get_time() - newTime)
-					
-				else : # si l'individu regarde le point central
+				if (Newgazepos[2][0] > (pospxl[0] - tol) and Newgazepos[2][0] < (pospxl[0] + tol)) and (Newgazepos[2][1] > (pospxl[1] - tol) and Newgazepos[2][1] < (pospxl[1] + tol)) : 
 					screen = libscreen.Screen()
 					#Le cercle devient vert
-					screen.draw_circle(colour=(int(128-(tfix*128/tfixation)),128,0), pos= self.norm_2_px((0.5,0.65)), r=30, pw=2, fill=True)
+					#screen.draw_circle(colour=(int(128-(tfix*128/tfixation)),128,0), pos= pospxl, r=30, pw=2, fill=True)
+					#screen.draw_circle(colour='green', pos= pospxl, r=30, pw=2, fill=True)
+					screen.draw_circle(colour='white', pos= pospxl, r=30, pw=2, fill=True)
+
+
 					self.disp.fill(screen=screen)
 					self.disp.show()
 					tfix += (libtime.get_time() - newTime)
 					cptperte = 0
+					cptdefauteyetracker = 0
+					
+				else : # si l'individu regarde le point central
+					if Newgazepos[2] == (-1,-1):
+						cptdefauteyetracker += (libtime.get_time() - newTime)
+					cptperte += (libtime.get_time() - newTime)
+
+
 
 				if NewTimeStamp != oldTimeStamp :
 					t = int(NewTimeStamp - txp) /1000
-					etat = etat_yeux(Newgazepos[0],Newgazepos[1])
-					gazePosSheet.append([t, Newgazepos[0][0],Newgazepos[0][1],Newgazepos[1][0],Newgazepos[1][1],Newgazepos[2][0],Newgazepos[2][1],etat])
+					etat = self.etat_yeux(Newgazepos[0],Newgazepos[1])
+					#gazePosSheet.append([t, Newgazepos[0][0],Newgazepos[0][1],Newgazepos[1][0],Newgazepos[1][1],Newgazepos[2][0],Newgazepos[2][1],etat])
 					oldTimeStamp = NewTimeStamp
 
 			if tfix> tfixation:
 				self.RecSound.play()
-				Result = 'Correct'
+				Result = 0
 		self.tracker.stop_recording()
-		#self.Visu.delete()
-		if tdeb>3000 or tfix <tfixation:
+
+		if tdeb>3000:
+			Resulat =1 
 			self.ErrSound.play()
 			screen = libscreen.Screen(bgc='white')
 			self.disp.fill(screen=screen)
 			self.disp.show()
 			time.sleep(3)
 
-		table.save(self.Config.getDataDirname('FixationPoint') + '/' + self.nameInd +'_' +  date + '_' +  Result + '_' + str(tfixation) + 'ms' + '.xls')
+		elif tfix <tfixation :
+			if cptdefauteyetracker > 200:
+				Result = 2
+			else :
+				Result = 3
+			self.ErrSound.play()
+			screen = libscreen.Screen(bgc='white')
+			self.disp.fill(screen=screen)
+			self.disp.show()
+			time.sleep(3)
+
+		mysheet.append([datej,x,y,tol,tfixation,Result])
+
+		#table.save(self.Config.getDataDirname('FixationPoint') + '/' + Name +'_' +  date + '_' +  Result + '_' + str(tfixation) + 'ms' + '.xls')
+		table.save(self.Config.getDataDirname('FixationPoint') + '/' + Name + '.xlsx')
 
 		print('fin')
 
@@ -787,35 +884,50 @@ class experience(CDPApplication):
 		self.disp.fill(screen=screen)
 		self.disp.show()
 
-	def CDPExplorationVisage(self,name):
-		date = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
+	def CDPExplorationVisage(self,name,xfix,yfix):
 
-		table = Workbook()
-		gazePosSheet = table.active
-		gazePosSheet.title = 'gazePos'
-		informationsheet = table.create_sheet("Information")
-		informationsheet.append(["NomImg"])
-		gazePosSheet.append(["Time", "XOeilDroit", "YOeilDroit","XOeilGauche","YOeilGauche","xRetenu","Yretenu","Etat"])
+		xfix = float(xfix)
+		yfix = float(yfix)
+		datedeb = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
+		os.mkdir(self.Config.getDataDirname('Exploration Visages') + '/' + name +'_' +  datedeb)
 
-		SetImageFile = self.SelectionSetIndividu(name)
+		#SetImageFile = self.SelectionSetIndividu(name)
+
+		SetImageFile = [self.Config.getImageDirname('Exploration Visages/anu/Anubis_02_200110DSC06806.resized.jpg'), self.Config.getImageDirname('Exploration Visages/anu/Anubis_Ref_200123DSC07844.resized.jpg'),self.Config.getImageDirname('Exploration Visages/bar/Barnabe_Ref_200123DSC07867.resized.jpg'),self.Config.getImageDirname('Exploration Visages/bar/Barnabe_04_200123DSC07859.resized.jpg'),self.Config.getImageDirname('Exploration Visages/ces/Cesar_03_200129DSC08442.resized.jpg'),self.Config.getImageDirname('Exploration Visages/ces/Cesar_Ref_200123DSC07860.resized.jpg')]
+		random.shuffle (SetImageFile)
+
 		self.tracker.start_recording()
+		print("L'expérience a débuté")
 		for img in SetImageFile:
-			informationsheet.append([img])
+			poscercle =self.norm_2_px((xfix,yfix))
+
+			date = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
+			imgname = os.path.basename(img)
+			imgname = os.path.splitext(imgname)[0]
+			table = Workbook()
+			gazePosSheet = table.active
+			gazePosSheet.title = 'gazePos'
+			informationsheet = table.create_sheet("Information")
+			informationsheet.append(["NomImg","xImage","yImage","xdep","ydep"])
+			gazePosSheet.append(["Time", "XOeilDroit", "YOeilDroit","XOeilGauche","YOeilGauche","xRetenu","Yretenu","Etat"])
+			informationsheet.append([img,960,702,poscercle[0],poscercle[1]])
 			screen = libscreen.Screen()
 
 			#le cercle reste blanc
-			screen.draw_circle(colour='white', pos= self.norm_2_px((0.2,0.65)), r=30, pw=2, fill=True) 
+
+			screen.draw_circle(colour='white', pos= poscercle, r=30, pw=2, fill=True) 
 			self.disp.fill(screen=screen)
 			self.disp.show()
 			tfix = 0
 			cptperte = 0
-			while tfix < 500:  
+			while tfix < 250:  
 
 				if self.kb.get_key(keylist= ['space'], flush=False)[0]:
 					screen.clear()
 					self.disp.fill(screen=screen)
 					self.disp.show()
-					table.save(self.Config.getDataDirname('Exploration Visages') + '/' + name +'_' +  date + '.xls')
+					self.tracker.stop_recording()
+
 					return()
 
 				newTime = libtime.get_time()
@@ -824,18 +936,18 @@ class experience(CDPApplication):
 
 				# si l'individu ne regarde pas le point central
 
-				if (Newgazepos[2][0] < 284 or Newgazepos[2][0] > 484) or (Newgazepos[2][1] < 602 or Newgazepos[2][1] > 802) : 
+				if (Newgazepos[2][0] < poscercle[0]-100 or Newgazepos[2][0] > poscercle[0] +100) or (Newgazepos[2][1] < poscercle[1]-100 or Newgazepos[2][1] > poscercle[1] + 100) : 
 					cptperte += (libtime.get_time() - newTime)
 					if cptperte > 300:
 						tfix = 0
-						screen.draw_circle(colour='white', pos= self.norm_2_px((0.2,0.65)), r=30, pw=2, fill=True) 
+						screen.draw_circle(colour='white', pos= poscercle, r=30, pw=2, fill=True) 
 						self.disp.fill(screen=screen)
 						self.disp.show()
 
-				else : # si l'individu regarde le point central
+				else : # si l'individu regarde le point 
 					screen = libscreen.Screen()
 					#Le cercle devient vert
-					screen.draw_circle(colour=(int(128-(tfix*128/500)),128,0), pos= self.norm_2_px((0.2,0.65)), r=30, pw=2, fill=True)
+					screen.draw_circle(colour=(int(128-(tfix*128/250)),128,0), pos= poscercle, r=30, pw=2, fill=True)
 					self.disp.fill(screen=screen)
 					self.disp.show()
 					tfix += (libtime.get_time() - newTime)
@@ -852,12 +964,13 @@ class experience(CDPApplication):
 			tdeb = libtime.get_time()
 			oldTimeStamp = 0
 			txp,gase = self.tracker.binocular_sample()
+
 			while libtime.get_time()-tdeb < 4000 :
 				time.sleep(0.01)
 				NewTimeStamp, Newgazepos = self.tracker.binocular_sample()
 				if NewTimeStamp != oldTimeStamp :
 					t = int(NewTimeStamp - txp) /1000
-					etat = etat_yeux(Newgazepos[0],Newgazepos[1])
+					etat = self.etat_yeux(Newgazepos[0],Newgazepos[1])
 					gazePosSheet.append([t, Newgazepos[0][0],Newgazepos[0][1],Newgazepos[1][0],Newgazepos[1][1],Newgazepos[2][0],Newgazepos[2][1],etat])
 					oldTimeStamp = NewTimeStamp
 
@@ -865,12 +978,18 @@ class experience(CDPApplication):
 			self.disp.fill(screen=screen)
 			self.disp.show()
 			self.RecSound.play()
-			time.sleep(1)
+			table.save(self.Config.getDataDirname('Exploration Visages') + '/' + name +'_' +  datedeb + '/' + name +'_' + imgname + '_' +  date + '.xls')
+
+			time.sleep(2)
+		print("L'expérience est terminée")
 		self.tracker.stop_recording()
-		table.save(self.Config.getDataDirname('Exploration Visages') + '/' + name +'_' +  date + '.xls')
 
 
 	def SelectionSetIndividu(self,name):
+
+		''' Permet de chosisir de facon compeltemetn un set d'individu parmi toutes les images possibles '''
+
+
 		excelname =  self.Config.getImageDirname('Exploration Visages') + '/' + 'dom_training_dyads_selection_final.xlsx'
 		document = xlrd.open_workbook(excelname) 
 		myFeuille = document.sheet_by_index(0)
@@ -888,25 +1007,29 @@ class experience(CDPApplication):
 			ListeFileName += [self.Config.getImageDirname('Exploration Visages') + '/' + indName + '/' +NameSelec]
 		return(ListeFileName)
 			
-def etat_yeux(PosG,PosD):
-	''' 
-	Paramètres : 
-		Coorodnnée de la position de l'oeil droit et de l'oeil Gauche 
-	Description :
-		Permet de connaître l'état des yeux, un seul fermé deux ou aucun 
-	Sortie :
-		0, aucun oeil fermé
-		1, Oeil Droit fermé
-		2, Oeil gauche fermé
-		3, Les deux yeux sont fermés
-	'''
-	if PosG == (-1,-1) and PosD == (-1,-1):
-		return 3
-	if PosD == (-1,-1):
-		return 1
-	if PosG == (-1,-1):
-		return 2
-	return 0
+	def etat_yeux(self,PosG,PosD):
+
+
+		''' 
+		Paramètres : 
+			Coorodnnée de la position de l'oeil droit et de l'oeil Gauche 
+		Description :
+			Permet de connaître l'état des yeux, un seul fermé deux ou aucun 
+		Sortie :
+			0, aucun oeil fermé
+			1, Oeil Droit fermé
+			2, Oeil gauche fermé
+			3, Les deux yeux sont fermés
+		'''
+
+
+		if PosG == (-1,-1) and PosD == (-1,-1):
+			return 3
+		if PosD == (-1,-1):
+			return 1
+		if PosG == (-1,-1):
+			return 2
+		return 0
 
 	### Lancement du script ###
 
